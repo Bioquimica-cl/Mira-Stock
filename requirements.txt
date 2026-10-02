@@ -8,8 +8,3 @@ urllib3==2.2.1
 httpx>=0.27.0
 itsdangerous>=2.1.0
 python-multipart>=0.0.9
-# Google Drive (scripts/export_images_to_drive.py)
-google-api-python-client>=2.120.0
-google-auth-httplib2>=0.2.0
-google-auth-oauthlib>=1.2.0
-openpyxl>=3.1.0

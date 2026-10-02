@@ -5,6 +5,7 @@ import unicodedata
 from datetime import datetime
 
 import requests
+from requests_oauthlib import OAuth1
 
 from app.database import get_db, init_db
 
@@ -25,6 +26,73 @@ def _normalize(text: str) -> str:
     return "".join(
         c for c in unicodedata.normalize("NFD", str(text)) if unicodedata.category(c) != "Mn"
     ).lower()
+
+
+def _fetch_woo_images() -> dict[str, str]:
+    """{SKU_UPPER: image_url} directo desde WooCommerce — sin pasar por Drive.
+    La imagen se sirve siempre desde el servidor de WooCommerce, en vivo."""
+    woo_url = os.getenv("WOO_URL", "").rstrip("/")
+    key     = os.getenv("WOO_KEY", "")
+    secret  = os.getenv("WOO_SECRET", "")
+    if not (woo_url and key and secret):
+        logger.warning("[Sync] WOO_URL/WOO_KEY/WOO_SECRET no configurados — sin imágenes.")
+        return {}
+
+    auth = OAuth1(key, secret)
+    base = f"{woo_url}/wp-json/wc/v3"
+    image_map: dict[str, str] = {}
+    variable_ids: list[int] = []
+    page = 1
+
+    while True:
+        try:
+            r = requests.get(
+                f"{base}/products",
+                auth=auth,
+                params={"page": page, "per_page": 100, "_fields": "id,sku,type,images"},
+                timeout=30,
+            )
+            r.raise_for_status()
+            products = r.json()
+            if not products:
+                break
+            for p in products:
+                sku = str(p.get("sku") or "").strip().upper()
+                imgs = p.get("images") or []
+                if sku and imgs and imgs[0].get("src"):
+                    image_map[sku] = imgs[0]["src"]
+                if p.get("type") == "variable":
+                    variable_ids.append(p["id"])
+            page += 1
+        except Exception as e:
+            logger.warning(f"[Sync] WooCommerce (productos, página {page}) falló: {e}")
+            break
+
+    for pid in variable_ids:
+        vpage = 1
+        while True:
+            try:
+                r = requests.get(
+                    f"{base}/products/{pid}/variations",
+                    auth=auth,
+                    params={"per_page": 100, "page": vpage, "_fields": "sku,image"},
+                    timeout=30,
+                )
+                r.raise_for_status()
+                variations = r.json()
+                if not variations:
+                    break
+                for v in variations:
+                    vsku = str(v.get("sku") or "").strip().upper()
+                    vimg = (v.get("image") or {}).get("src", "")
+                    if vsku and vimg and vsku not in image_map:
+                        image_map[vsku] = vimg
+                vpage += 1
+            except Exception as e:
+                logger.warning(f"[Sync] WooCommerce (variaciones producto {pid}) falló: {e}")
+                break
+
+    return image_map
 
 
 def run_sync():
@@ -61,13 +129,17 @@ def run_sync():
         items = data.get("items", [])
 
         logger.info(f"[Sync] {len(items)} ítems recibidos desde Stock-Service.")
-        sync_status.update({"progress": 70, "message": f"Procesando {len(items)} ítems..."})
+        sync_status.update({"progress": 60, "message": f"Procesando {len(items)} ítems..."})
+
+        # ── Imágenes directo de WooCommerce (sin Drive) ─────────────────────────
+        sync_status.update({"progress": 65, "message": "Obteniendo imágenes desde WooCommerce..."})
+        image_map = _fetch_woo_images()
+        logger.info(f"[Sync] {len(image_map)} imágenes obtenidas de WooCommerce.")
 
         # ── Preparar filas para SQLite ──────────────────────────────────────────
         # Categorías y descripción web ya vienen incluidas en la respuesta de
         # Stock-Service (campos `categories` y `woo_description`) — no hace falta
-        # una segunda llamada a WooCommerce para esto (esa llamada aparte existía
-        # antes y fallaba en silencio, dejando categorías/descripción vacías).
+        # pedírselas a WooCommerce de nuevo.
         sync_status.update({"progress": 80, "message": "Guardando en base de datos local..."})
 
         product_rows = []
@@ -83,6 +155,7 @@ def run_sync():
             # Descripción: SAP ForeignName primero, descripción de WooCommerce como fallback
             sap_desc = (p.get("description") or "").strip()
             description = sap_desc or (p.get("woo_description") or "").strip()
+            image_url = image_map.get(sku.upper(), "")
 
             cats = p.get("categories") or []
             for c in cats:
@@ -96,11 +169,10 @@ def run_sync():
                 name_norm,
                 p.get("item_type", "Producto"),
                 float(p.get("price") or 0),
-                "",  # image_url: sin fuente propia — se usa solo "images" (Drive)
+                image_url,
                 description,
                 1 if p.get("sell_item", True) else 0,
                 categories_str,
-                "",  # images: se llena con el script de Drive, no se toca en el sync
             ))
 
             for wh in ["01", "11", "15", "30"]:
@@ -110,21 +182,18 @@ def run_sync():
         init_db()
         conn = get_db()
 
-        # Preservar datos locales que el sync no trae (ubicaciones e imágenes de Drive)
-        preserved = {
-            row[0]: (row[1], row[2])
-            for row in conn.execute(
-                "SELECT sku, location, images FROM products WHERE location != '' OR images != ''"
-            ).fetchall()
-        }
+        # Preservar la ubicación física (lo único que el sync no trae de ninguna API)
+        preserved_locations = dict(
+            conn.execute("SELECT sku, location FROM products WHERE location != ''").fetchall()
+        )
 
         with conn:
             conn.execute("DELETE FROM stock")
             conn.execute("DELETE FROM products")
             conn.execute("DELETE FROM categories")
             conn.executemany(
-                "INSERT INTO products (sku, name, name_norm, item_type, price, image_url, description, sell_item, categories, images) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO products (sku, name, name_norm, item_type, price, image_url, description, sell_item, categories) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 product_rows,
             )
             conn.executemany(
@@ -136,16 +205,11 @@ def run_sync():
                     "INSERT INTO categories (slug, name) VALUES (?, ?)",
                     [(slug, name) for slug, name in all_categories.items()],
                 )
-            # Restaurar ubicaciones e imágenes de Drive que el sync sobreescribiría con ''
-            for sku, (location, images) in preserved.items():
-                if location:
-                    conn.execute(
-                        "UPDATE products SET location=? WHERE sku=?", (location, sku)
-                    )
-                if images:
-                    conn.execute(
-                        "UPDATE products SET images=? WHERE sku=?", (images, sku)
-                    )
+            if preserved_locations:
+                conn.executemany(
+                    "UPDATE products SET location=? WHERE sku=?",
+                    [(location, sku) for sku, location in preserved_locations.items()],
+                )
         conn.close()
 
         sync_status.update({
@@ -153,9 +217,9 @@ def run_sync():
             "progress":       100,
             "total_products": len(product_rows),
             "last_sync":      datetime.now().strftime("%Y-%m-%d %H:%M"),
-            "message":        f"Completado: {len(product_rows)} productos, {len(all_categories)} categorías.",
+            "message":        f"Completado: {len(product_rows)} productos, {len(all_categories)} categorías, {len(image_map)} imágenes.",
         })
-        logger.info(f"[Sync] Completado: {len(product_rows)} productos, {len(all_categories)} categorías.")
+        logger.info(f"[Sync] Completado: {len(product_rows)} productos, {len(all_categories)} categorías, {len(image_map)} imágenes.")
 
     except Exception as e:
         sync_status.update({

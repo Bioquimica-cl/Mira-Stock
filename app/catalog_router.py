@@ -19,7 +19,6 @@ _PRODUCT_COLS = """
     p.description,
     p.item_type,
     p.sell_item,
-    p.images,
     p.image_url,
     p.price,
     COALESCE(s15.on_hand, 0) AS stock_tienda,
@@ -32,17 +31,9 @@ _JOINS = """
 """
 
 
-def _drive_url(file_id: str) -> str:
-    return f"https://drive.google.com/thumbnail?id={file_id}&sz=w600"
-
-
 def _expand_images(row: dict) -> dict:
-    raw = row.get("images") or ""
-    ids = [fid.strip() for fid in raw.split(",") if fid.strip()]
-    urls = [_drive_url(fid) for fid in ids]
-    # Fallback: si no hay IDs de Drive, usa la URL de WooCommerce
-    if not urls and row.get("image_url"):
-        urls = [row["image_url"]]
+    # Imagen servida directo desde WooCommerce (sin Drive de por medio).
+    urls = [row["image_url"]] if row.get("image_url") else []
     row["image_urls"] = urls
     row["image_count"] = len(urls)
     return row
