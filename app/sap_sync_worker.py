@@ -5,7 +5,6 @@ import unicodedata
 from datetime import datetime
 
 import requests
-from requests_oauthlib import OAuth1
 
 from app.database import get_db, init_db
 
@@ -38,7 +37,9 @@ def _fetch_woo_images() -> dict[str, str]:
         logger.warning("[Sync] WOO_URL/WOO_KEY/WOO_SECRET no configurados — sin imágenes.")
         return {}
 
-    auth = OAuth1(key, secret)
+    # Basic Auth (no OAuth1): WooCommerce solo exige firma OAuth1 para sitios sin
+    # SSL — bioquimica.cl es HTTPS, así que key/secret van directo como usuario/clave.
+    auth = (key, secret)
     base = f"{woo_url}/wp-json/wc/v3"
     image_map: dict[str, str] = {}
     variable_ids: list[int] = []
