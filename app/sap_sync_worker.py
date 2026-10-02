@@ -32,7 +32,11 @@ def run_sync():
 
     try:
         api_url  = os.getenv("API_PLANILLAS_URL", "").rstrip("/")
-        endpoint = f"{api_url}/api/v1/stock/catalog"
+        # enabled=true: solo SKU vigentes/vendibles en SAP ahora mismo (SalesItem='Y' y
+        # Valid='Y') — sin esto, Stock-Service trae también los que SAP dejó de traer
+        # (descontinuados/de baja), inflando el catálogo con ítems que no deberían
+        # mostrarse en una tienda/escáner de uso real.
+        endpoint = f"{api_url}/api/v1/stock/catalog?enabled=true"
 
         if not api_url:
             raise ValueError("API_PLANILLAS_URL no está configurada en el .env")
