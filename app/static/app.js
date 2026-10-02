@@ -1,4 +1,4 @@
-console.log("[MiraStock-Total] Sistema cargado (v2.0 — solo escáner y catálogo).");
+console.log("[MiraStock-Total] Sistema cargado (v2.1 — vista de tabla en catálogo).");
 
 let inputBuffer = '';
 let bufferTimeout = null;
@@ -8,10 +8,13 @@ let syncInterval = null;
 let lastKnownRunning = false;
 let currentPage = 1;
 let selectedCanal = '';
+let catalogViewMode = localStorage.getItem('catalog-view') || 'grid';
+let lastProducts = [];
 
 // --- 1. Inicialización ---
 async function init() {
     try {
+        applyCatalogView();
         await startSyncPolling();
         await loadSyncSchedule();
         await loadCategories();
@@ -180,6 +183,7 @@ async function loadCatalog(search = '', page = 1) {
     if (search === null) search = document.getElementById('catalog-search').value;
 
     grid.innerHTML = '';
+    document.getElementById('catalog-table-body').innerHTML = '';
     loading.classList.remove('hidden');
     empty.classList.add('hidden');
     pagination.innerHTML = '';
@@ -191,7 +195,8 @@ async function loadCatalog(search = '', page = 1) {
         const res  = await fetch(url);
         const data = await res.json();
 
-        renderCatalog(data.products || []);
+        lastProducts = data.products || [];
+        renderCatalogView(lastProducts);
         renderPagination(data.pagination || {});
         currentPage = data.pagination?.current_page || 1;
     } catch (err) {
@@ -217,15 +222,61 @@ function priceWithIva(price) {
     return Math.round((parseFloat(price) || 0) * 1.19);
 }
 
-function renderCatalog(products) {
-    const grid  = document.getElementById('catalog-grid');
-    const empty = document.getElementById('catalog-empty');
-    grid.innerHTML = '';
+// --- Selector de vista: tarjetas / tabla ---
+function setCatalogView(mode) {
+    catalogViewMode = mode;
+    localStorage.setItem('catalog-view', mode);
+    applyCatalogView();
+    renderCatalogView(lastProducts);
+}
 
+function applyCatalogView() {
+    const isTable = catalogViewMode === 'table';
+    document.getElementById('catalog-grid')?.classList.toggle('hidden', isTable);
+    document.getElementById('catalog-table')?.classList.toggle('hidden', !isTable);
+    document.getElementById('view-btn-grid')?.classList.toggle('active', !isTable);
+    document.getElementById('view-btn-table')?.classList.toggle('active', isTable);
+}
+
+function renderCatalogView(products) {
+    const empty = document.getElementById('catalog-empty');
     if (!products.length) {
         empty.classList.remove('hidden');
+        document.getElementById('catalog-grid').innerHTML = '';
+        document.getElementById('catalog-table-body').innerHTML = '';
         return;
     }
+    empty.classList.add('hidden');
+
+    if (catalogViewMode === 'table') {
+        renderCatalogTable(products);
+    } else {
+        renderCatalog(products);
+    }
+}
+
+function renderCatalogTable(products) {
+    const body = document.getElementById('catalog-table-body');
+    body.innerHTML = '';
+
+    products.forEach(p => {
+        const precioTienda = priceWithIva(p.price);
+        const tr = document.createElement('tr');
+        tr.className = 'catalog-table-row';
+        tr.innerHTML = `
+            <td class="px-5 py-3 text-xs font-bold font-mono text-gray-600 whitespace-nowrap">${escapeHtml(p.sku)}</td>
+            <td class="px-5 py-3 text-sm font-semibold text-gray-800">${escapeHtml(p.name)}</td>
+            <td class="px-5 py-3 text-sm text-gray-500 catalog-desc-cell" title="${escapeHtml(p.description || '')}">${escapeHtml(p.description || '')}</td>
+            <td class="px-5 py-3 text-sm font-bold text-slate-800 text-right whitespace-nowrap">${formatPrice(precioTienda)}</td>
+        `;
+        tr.onclick = () => openProductModal(p);
+        body.appendChild(tr);
+    });
+}
+
+function renderCatalog(products) {
+    const grid = document.getElementById('catalog-grid');
+    grid.innerHTML = '';
 
     products.forEach(p => {
         const precioTienda = priceWithIva(p.price);

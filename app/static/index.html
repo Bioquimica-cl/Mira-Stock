@@ -264,8 +264,39 @@
 
                 <!-- Contenido Principal -->
                 <div class="flex-1">
+                    <!-- Selector de vista: tarjetas / tabla -->
+                    <div class="flex justify-end mb-4">
+                        <div class="flex bg-gray-100 p-1 rounded-xl">
+                            <button id="view-btn-grid" onclick="setCatalogView('grid')"
+                                class="view-toggle-btn px-4 py-2 rounded-lg font-bold text-xs flex items-center gap-2 transition-all">
+                                <i class="fas fa-th-large"></i><span class="hidden sm:inline">Tarjetas</span>
+                            </button>
+                            <button id="view-btn-table" onclick="setCatalogView('table')"
+                                class="view-toggle-btn px-4 py-2 rounded-lg font-bold text-xs flex items-center gap-2 transition-all">
+                                <i class="fas fa-list"></i><span class="hidden sm:inline">Tabla</span>
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- Grid de productos -->
                     <div id="catalog-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-10 max-w-5xl"></div>
+
+                    <!-- Tabla de productos -->
+                    <div id="catalog-table" class="hidden mb-10 bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead>
+                                    <tr class="border-b border-gray-100 bg-gray-50">
+                                        <th class="px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">SKU</th>
+                                        <th class="px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Nombre</th>
+                                        <th class="px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Descripción</th>
+                                        <th class="px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Precio tienda</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="catalog-table-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
 
                     <!-- Paginación -->
                     <div id="pagination-controls" class="flex items-center justify-center gap-2 py-8 border-t border-gray-100 flex-wrap"></div>
@@ -370,6 +401,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=2.0"></script>
+    <script src="app.js?v=2.1"></script>
 </body>
 </html>

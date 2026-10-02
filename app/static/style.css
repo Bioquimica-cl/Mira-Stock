@@ -66,6 +66,39 @@ body {
     box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
 }
 
+/* Selector de vista del catálogo (tarjetas / tabla) */
+.view-toggle-btn {
+    color: #64748b;
+}
+
+.view-toggle-btn.active {
+    background-color: #fff;
+    color: #f97316;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+/* Tabla de catálogo: la descripción se acota a una línea; el nombre nunca. */
+.catalog-table-row {
+    border-bottom: 1px solid #f3f4f6;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.catalog-table-row:hover {
+    background-color: #fff7ed;
+}
+
+.catalog-table-row:last-child {
+    border-bottom: none;
+}
+
+.catalog-desc-cell {
+    max-width: 320px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 /* Tarjetas */
 .product-card {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
