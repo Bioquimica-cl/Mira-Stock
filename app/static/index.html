@@ -260,7 +260,14 @@
                     <!-- Tabla de productos -->
                     <div id="catalog-table" class="hidden mb-10 bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
                         <div class="overflow-x-auto">
-                            <table class="w-full text-left">
+                            <table class="w-full text-left" style="table-layout: fixed; min-width: 900px;">
+                                <colgroup>
+                                    <col style="width: 12%">
+                                    <col style="width: 28%">
+                                    <col style="width: 38%">
+                                    <col style="width: 11%">
+                                    <col style="width: 11%">
+                                </colgroup>
                                 <thead>
                                     <tr class="border-b border-gray-100 bg-gray-50">
                                         <th class="px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">SKU</th>
@@ -380,6 +387,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=2.3"></script>
+    <script src="app.js?v=2.4"></script>
 </body>
 </html>
