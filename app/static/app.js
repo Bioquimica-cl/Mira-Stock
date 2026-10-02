@@ -254,7 +254,9 @@ function renderCatalogTable(products) {
         tr.innerHTML = `
             <td class="px-5 py-3 text-xs font-bold font-mono text-gray-600 whitespace-nowrap">${escapeHtml(p.sku)}</td>
             <td class="px-5 py-3 text-sm font-semibold text-gray-800">${escapeHtml(p.name)}</td>
-            <td class="px-5 py-3 text-sm text-gray-500 catalog-desc-cell" title="${escapeHtml(p.description || '')}">${escapeHtml(p.description || '')}</td>
+            <td class="px-5 py-3 text-sm text-gray-500" style="max-width: 0;">
+                <div class="catalog-desc-cell" title="${escapeHtml(p.description || '')}">${escapeHtml(p.description || '')}</div>
+            </td>
             <td class="px-5 py-3 text-sm font-black text-right whitespace-nowrap ${Math.round(p.stock_tienda||0)>0?'text-orange-500':'text-gray-300'}">${Math.round(p.stock_tienda||0)}</td>
             <td class="px-5 py-3 text-sm font-bold text-slate-800 text-right whitespace-nowrap">${formatPrice(precioTienda)}</td>
         `;
