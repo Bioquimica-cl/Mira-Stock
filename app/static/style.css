@@ -261,6 +261,13 @@ body {
     line-height: 1.7;
     word-break: break-word;
 }
+
+/* Acotada a una sola línea, con "Ver más" al lado (ver toggleDescription en app.js) */
+.description-truncated {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 .description-content p {
     margin-bottom: 0.6rem;
 }

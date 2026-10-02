@@ -7,6 +7,7 @@ let resetInterval = null;
 let syncInterval = null;
 let lastKnownRunning = false;
 let currentPage = 1;
+let descriptionExpanded = false;
 let catalogViewMode = localStorage.getItem('catalog-view') || 'grid';
 let lastProducts = [];
 
@@ -187,8 +188,9 @@ async function loadCatalog(search = '', page = 1) {
     pagination.innerHTML = '';
 
     try {
-        const stock    = document.getElementById('catalog-stock-status').value;
-        const category = document.getElementById('catalog-category').value;
+        const stock = document.getElementById('catalog-stock-status').value;
+        const categoryTyped = document.getElementById('catalog-category').value.trim();
+        const category = categoryNameToSlug[categoryTyped] || '';
         const url = `/api/products?search=${encodeURIComponent(search)}&stock_filter=${stock}&category=${encodeURIComponent(category)}&page=${page}`;
         const res  = await fetch(url);
         const data = await res.json();
@@ -347,21 +349,28 @@ document.getElementById('catalog-search').addEventListener('input', (e) => {
 });
 document.getElementById('catalog-stock-status').addEventListener('change', () =>
     loadCatalog(document.getElementById('catalog-search').value, 1));
-document.getElementById('catalog-category').addEventListener('change', () =>
-    loadCatalog(document.getElementById('catalog-search').value, 1));
+document.getElementById('catalog-category').addEventListener('input', (e) => {
+    const typed = e.target.value.trim();
+    if (typed === '' || categoryNameToSlug[typed]) {
+        loadCatalog(document.getElementById('catalog-search').value, 1);
+    }
+});
+
+let categoryNameToSlug = {};
 
 async function loadCategories() {
     try {
         const res  = await fetch('/api/categories');
         if (!res.ok) return;
         const cats = await res.json();
-        const sel  = document.getElementById('catalog-category');
-        if (!sel) return;
+        const list = document.getElementById('catalog-category-list');
+        if (!list) return;
+        categoryNameToSlug = {};
         cats.forEach(c => {
+            categoryNameToSlug[c.name] = c.slug;
             const opt = document.createElement('option');
-            opt.value = c.slug;
-            opt.textContent = c.name;
-            sel.appendChild(opt);
+            opt.value = c.name;
+            list.appendChild(opt);
         });
     } catch (err) {
         console.error("Error cargando categorías:", err);
@@ -374,11 +383,17 @@ function openProductModal(p) {
     document.getElementById('modal-title').textContent = p.name;
     document.getElementById('modal-price').textContent = formatPrice(priceWithIva(p.price));
 
-    // Descripción
-    const descWrap = document.getElementById('modal-description-wrap');
-    const descEl   = document.getElementById('modal-description');
+    // Descripción (acotada a una línea, con toggle "Ver más")
+    const descWrap   = document.getElementById('modal-description-wrap');
+    const descEl     = document.getElementById('modal-description');
+    const descToggle = document.getElementById('modal-description-toggle');
+    descriptionExpanded = false;
     if (p.description) {
-        if (descEl) descEl.innerHTML = p.description;
+        if (descEl) {
+            descEl.innerHTML = p.description;
+            descEl.classList.add('description-truncated');
+        }
+        if (descToggle) descToggle.textContent = 'Ver más';
         descWrap?.classList.remove('hidden');
     } else {
         descWrap?.classList.add('hidden');
@@ -416,6 +431,14 @@ function openProductModal(p) {
 function closeProductModal() {
     document.getElementById('product-modal').classList.add('hidden');
     document.body.style.overflow = 'auto';
+}
+
+function toggleDescription() {
+    const descEl     = document.getElementById('modal-description');
+    const descToggle = document.getElementById('modal-description-toggle');
+    descriptionExpanded = !descriptionExpanded;
+    descEl.classList.toggle('description-truncated', !descriptionExpanded);
+    descToggle.textContent = descriptionExpanded ? 'Ver menos' : 'Ver más';
 }
 
 // --- 7. Sincronización ---
