@@ -64,14 +64,13 @@ def run_sync():
         category_map:   dict = {}
         all_categories: dict = {}
         desc_map:       dict = {}
-        pricing_map:    dict = {}
         try:
             from app.woo_client import WooImageClient
             woo = WooImageClient()
             if woo.is_configured():
                 sync_status.update({"progress": 70, "message": "Obteniendo imágenes, categorías y descripciones desde WooCommerce..."})
-                image_map, category_map, all_categories, desc_map, pricing_map = woo.get_enrichment()
-                logger.info(f"[Sync] {len(image_map)} imágenes, {len(all_categories)} categorías, {len(desc_map)} descripciones, {len(pricing_map)} con descuento de WooCommerce.")
+                image_map, category_map, all_categories, desc_map = woo.get_enrichment()
+                logger.info(f"[Sync] {len(image_map)} imágenes, {len(all_categories)} categorías, {len(desc_map)} descripciones de WooCommerce.")
         except Exception as e:
             logger.warning(f"[Sync] WooCommerce no disponible (no crítico): {e}")
 
@@ -91,7 +90,6 @@ def run_sync():
             # Descripción: SAP ForeignName primero, WooCommerce short_description como fallback
             sap_desc = (p.get("description") or "").strip()
             description = sap_desc or desc_map.get(sku, "")
-            pricing = pricing_map.get(sku, {})
 
             product_rows.append((
                 sku,
@@ -103,8 +101,6 @@ def run_sync():
                 description,
                 1 if p.get("sell_item", True) else 0,
                 category_map.get(sku, ""),
-                pricing.get("regular", 0.0),
-                pricing.get("sale", 0.0),
                 "",  # images: se llena con el script de Drive, no se toca en el sync
             ))
 
@@ -128,8 +124,8 @@ def run_sync():
             conn.execute("DELETE FROM products")
             conn.execute("DELETE FROM categories")
             conn.executemany(
-                "INSERT INTO products (sku, name, name_norm, item_type, price, image_url, description, sell_item, categories, woo_regular_price, woo_sale_price, images) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO products (sku, name, name_norm, item_type, price, image_url, description, sell_item, categories, images) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 product_rows,
             )
             conn.executemany(

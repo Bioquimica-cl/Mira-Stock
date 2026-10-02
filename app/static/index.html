@@ -12,12 +12,6 @@
 
 <body class="min-h-screen flex flex-col font-sans">
 
-    <!-- Auth error banner -->
-    <div id="auth-error-banner" class="hidden w-full bg-red-500 text-white text-sm font-semibold px-4 py-2 flex items-center justify-between gap-4">
-        <span><i class="fas fa-exclamation-circle mr-2"></i><span id="auth-error-msg"></span></span>
-        <button onclick="document.getElementById('auth-error-banner').classList.add('hidden')" class="text-white/80 hover:text-white"><i class="fas fa-times"></i></button>
-    </div>
-
     <!-- Header -->
     <header class="w-full bg-white shadow-md p-2 md:p-4 sticky top-0 z-50">
         <div class="w-full flex flex-row items-center justify-between gap-2 md:gap-4">
@@ -73,9 +67,6 @@
                     <button onclick="changeFontSize(-0.1)" class="font-ctrl-btn text-xs" title="Achicar letra">A-</button>
                     <button onclick="changeFontSize(0.1)"  class="font-ctrl-btn text-xs" title="Agrandar letra">A+</button>
                 </div>
-
-                <!-- Auth widget -->
-                <div id="auth-widget" class="flex items-center gap-2 border-t md:border-t-0 md:border-l pt-3 md:pt-0 md:pl-4 border-gray-100"></div>
             </div>
         </div>
     </header>
@@ -137,43 +128,14 @@
                         <!-- Nombre -->
                         <h2 id="product-name" class="text-2xl md:text-3xl font-bold text-gray-800 leading-tight mb-5"></h2>
 
-                        <!-- Precio + Total -->
-                        <div class="bg-gray-50 rounded-2xl border border-gray-100 px-5 py-4 mb-5 flex items-center justify-between">
-                            <div>
-                                <span class="text-[10px] uppercase font-bold text-gray-400">Precio</span>
-                                <div id="product-price" class="text-3xl md:text-4xl font-bold text-green-600"></div>
-                            </div>
-                            <div id="product-total-box" class="text-center px-4 py-2 rounded-xl bg-slate-100 border border-slate-200">
-                                <span class="text-[9px] uppercase font-bold text-slate-400 block">Total</span>
-                                <span id="product-total-stock" class="text-2xl font-black text-slate-700">--</span>
-                            </div>
+                        <!-- Precio tienda -->
+                        <div class="bg-gray-50 rounded-2xl border border-gray-100 px-5 py-4 mb-5">
+                            <span class="text-[10px] uppercase font-bold text-gray-400">Precio tienda</span>
+                            <div id="product-price" class="text-3xl md:text-4xl font-bold text-green-600"></div>
                         </div>
 
-                        <!-- Bodegas (autenticado) -->
-                        <div id="product-wh-auth" class="mb-6 hidden">
-                            <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Stock por bodega</h4>
-                            <div class="grid grid-cols-4 gap-2">
-                                <div class="wh-card wh-01">
-                                    <span class="wh-label">Bod. 01</span>
-                                    <span id="product-stock-01" class="wh-value">--</span>
-                                </div>
-                                <div class="wh-card wh-11">
-                                    <span class="wh-label">Bod. 11</span>
-                                    <span id="product-stock-11" class="wh-value">--</span>
-                                </div>
-                                <div class="wh-card wh-15">
-                                    <span class="wh-label">Bod. 15</span>
-                                    <span id="product-stock-15" class="wh-value">--</span>
-                                </div>
-                                <div class="wh-card wh-30">
-                                    <span class="wh-label">Bod. 30</span>
-                                    <span id="product-stock-30" class="wh-value">--</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Disponibilidad (público) -->
-                        <div id="product-wh-public" class="mb-6 hidden">
+                        <!-- Disponibilidad -->
+                        <div class="mb-6">
                             <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Disponibilidad</h4>
                             <div class="grid grid-cols-2 gap-2">
                                 <div class="wh-card wh-15">
@@ -273,17 +235,6 @@
                         </div>
                     </div>
 
-                    <!-- Filtro: Bodegas (solo auth) -->
-                    <div id="filter-bodegas" class="mb-6 hidden">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Bodegas</label>
-                        <div class="flex flex-wrap gap-2">
-                            <button id="wh-btn-01" onclick="toggleWarehouse('01')" class="wh-pill wh-pill-01">01</button>
-                            <button id="wh-btn-11" onclick="toggleWarehouse('11')" class="wh-pill wh-pill-11">11</button>
-                            <button id="wh-btn-15" onclick="toggleWarehouse('15')" class="wh-pill wh-pill-15">15</button>
-                            <button id="wh-btn-30" onclick="toggleWarehouse('30')" class="wh-pill wh-pill-30">30</button>
-                        </div>
-                    </div>
-
                     <!-- Filtro: Categoría -->
                     <div class="mb-6">
                         <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Categoría</label>
@@ -298,18 +249,6 @@
                         </div>
                     </div>
 
-                    <!-- Filtro: Solo venta (solo auth) -->
-                    <div id="filter-sell-item" class="mb-6">
-                        <button id="sell-item-btn" onclick="toggleSellItem()"
-                            class="flex items-center justify-between w-full px-4 py-3 rounded-2xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-600 transition-all hover:bg-orange-50">
-                            <div class="flex items-center gap-2">
-                                <i class="fas fa-store"></i>
-                                <span>Solo venta</span>
-                            </div>
-                            <i class="fas fa-check-circle opacity-0 transition-opacity" id="sell-item-check"></i>
-                        </button>
-                    </div>
-
                     <!-- Limpiar filtros -->
                     <button onclick="clearFilters()"
                         class="w-full bg-gray-100 hover:bg-orange-50 text-gray-500 hover:text-orange-600 border border-gray-200 font-bold py-3 px-5 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95 text-sm mb-3">
@@ -320,10 +259,6 @@
                     <button onclick="triggerSync()"
                         class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 px-5 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95 text-sm">
                         <i class="fas fa-sync-alt"></i> Sincronizar SAP
-                    </button>
-                    <button id="location-bulk-btn" onclick="openLocationBulkModal()"
-                        class="hidden w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-5 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95 text-sm mt-2">
-                        <i class="fas fa-map-marker-alt"></i> Actualizar ubicaciones
                     </button>
                 </aside>
 
@@ -391,90 +326,37 @@
                             <i class="fas fa-chevron-right text-xs"></i>
                         </button>
                     </div>
-                    <!-- Dots + botón eliminar -->
-                    <div class="flex items-center justify-between w-full px-1">
+                    <!-- Dots -->
+                    <div class="flex items-center justify-center w-full px-1">
                         <div id="modal-img-dots" class="flex items-center gap-1.5"></div>
-                        <button id="modal-img-delete" onclick="deleteCurrentImage()"
-                            class="hidden w-7 h-7 flex items-center justify-center rounded-full bg-red-50 hover:bg-red-100 text-red-400 hover:text-red-600 transition-colors"
-                            title="Eliminar esta imagen">
-                            <i class="fas fa-trash text-[10px]"></i>
-                        </button>
                     </div>
-                    <!-- Botón subir foto (solo auth) -->
-                    <button id="modal-upload-btn" onclick="openUploadModal()"
-                        class="hidden w-full py-2 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-600 font-bold text-xs transition-all flex items-center justify-center gap-1.5">
-                        <i class="fas fa-camera"></i> Subir foto
-                    </button>
                 </div>
 
                 <!-- Datos (scrolleables) -->
                 <div class="flex-1 overflow-y-auto p-6 md:p-8 space-y-5">
 
-                    <!-- Precio web + tipo + total -->
+                    <!-- Precio tienda + tipo + total -->
                     <div class="bg-gray-50 rounded-2xl p-4 border border-gray-100">
-                        <div class="flex items-start justify-between mb-3">
+                        <div class="flex items-start justify-between">
                             <div>
-                                <span id="modal-price-label" class="text-[10px] uppercase font-bold text-gray-400">Precio web</span>
-                                <div class="flex items-baseline gap-2 mt-0.5">
-                                    <div id="modal-web-price" class="text-2xl font-bold text-slate-800"></div>
-                                    <span id="modal-regular-price-strike" class="text-sm text-gray-400 line-through hidden"></span>
-                                    <span id="modal-discount-pct" class="hidden text-xs font-extrabold px-2 py-0.5 rounded-lg bg-red-500 text-white"></span>
-                                </div>
+                                <span class="text-[10px] uppercase font-bold text-gray-400">Precio tienda</span>
+                                <div id="modal-price" class="text-2xl font-bold text-slate-800 mt-0.5"></div>
                             </div>
-                            <div class="flex flex-col items-end gap-1.5">
-                                <span id="modal-type-badge" class="text-[10px] font-bold uppercase px-3 py-1 rounded-full type-badge-producto">Producto</span>
-                                <div class="text-center">
-                                    <span class="text-[9px] uppercase font-bold text-gray-400 block">Total stock</span>
-                                    <span id="modal-total-stock" class="text-2xl font-black text-slate-700">--</span>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- Neto SAP: solo autenticados -->
-                        <div id="modal-neto-row" class="flex gap-6 pt-3 border-t border-gray-200">
-                            <div>
-                                <span class="text-[10px] uppercase font-bold text-gray-400 block">Neto (SAP)</span>
-                                <span id="modal-price" class="text-sm font-bold text-gray-600"></span>
-                            </div>
-                            <div>
-                                <span class="text-[10px] uppercase font-bold text-gray-400 block">+ IVA 19%</span>
-                                <span id="modal-price-iva" class="text-sm font-bold text-gray-600"></span>
-                            </div>
+                            <span id="modal-type-badge" class="text-[10px] font-bold uppercase px-3 py-1 rounded-full type-badge-producto">Producto</span>
                         </div>
                     </div>
 
                     <!-- Ubicación en tienda -->
                     <div id="modal-location-wrap" class="hidden">
-                        <div class="flex items-center justify-between mb-2">
-                            <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                                <i class="fas fa-map-marker-alt text-amber-400 mr-1"></i> Ubicación en tienda
-                            </h4>
-                            <button id="modal-location-edit-btn" onclick="startLocationEdit()"
-                                class="hidden w-7 h-7 flex items-center justify-center rounded-full hover:bg-amber-50 text-amber-400 hover:text-amber-600 transition-colors"
-                                title="Editar ubicación">
-                                <i class="fas fa-pencil-alt text-xs"></i>
-                            </button>
-                        </div>
-                        <div id="modal-location-read">
-                            <p id="modal-location-text" class="text-sm font-bold text-slate-700 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 min-h-[44px] italic text-gray-400"></p>
-                        </div>
-                        <div id="modal-location-edit" class="hidden flex gap-2">
-                            <input id="modal-location-input" type="text" placeholder="Ej: 28, Ex 7"
-                                class="flex-1 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-300"
-                                onkeydown="if(event.key==='Enter') saveLocation(); if(event.key==='Escape') cancelLocationEdit()">
-                            <button onclick="saveLocation()"
-                                class="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition-colors flex items-center">
-                                <i class="fas fa-check"></i>
-                            </button>
-                            <button onclick="cancelLocationEdit()"
-                                class="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-xl text-xs font-bold transition-colors flex items-center">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
+                        <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">
+                            <i class="fas fa-map-marker-alt text-amber-400 mr-1"></i> Ubicación en tienda
+                        </h4>
+                        <p id="modal-location-text" class="text-sm font-bold text-slate-700 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 min-h-[44px] italic text-gray-400"></p>
                     </div>
 
-                    <!-- Bodegas -->
+                    <!-- Disponibilidad -->
                     <div>
-                        <h4 id="modal-stock-title" class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Stock por bodega</h4>
+                        <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Disponibilidad</h4>
                         <div id="modal-warehouse-list" class="flex flex-col gap-2"></div>
                     </div>
 
@@ -488,114 +370,6 @@
         </div>
     </div>
 
-    <!-- Modal: subir foto a producto -->
-    <div id="upload-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-[70] hidden p-4 backdrop-blur-sm">
-        <div class="bg-white w-full max-w-md rounded-[2rem] shadow-2xl p-6 flex flex-col gap-4 animate-modal-in">
-            <div class="flex items-center justify-between">
-                <h3 class="font-bold text-slate-800 text-lg">Subir foto</h3>
-                <button onclick="closeUploadModal()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <p id="upload-modal-sku" class="text-xs font-mono text-gray-400"></p>
-            <label class="flex flex-col items-center justify-center border-2 border-dashed border-orange-200 rounded-2xl p-8 cursor-pointer hover:bg-orange-50 transition-colors gap-2">
-                <i class="fas fa-cloud-upload-alt text-3xl text-orange-400"></i>
-                <span class="text-sm font-semibold text-gray-500">Selecciona una o más fotos</span>
-                <span class="text-xs text-gray-400">JPG, PNG, WEBP</span>
-                <input id="upload-file-input" type="file" accept="image/*" multiple class="hidden" onchange="handleUploadFiles()">
-            </label>
-            <div id="upload-preview" class="flex flex-wrap gap-2 hidden"></div>
-            <div id="upload-progress-wrap" class="hidden">
-                <div class="text-xs text-gray-400 mb-1" id="upload-progress-text">Subiendo...</div>
-                <div class="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div id="upload-progress-bar" class="h-full bg-orange-500 transition-all duration-300" style="width:0%"></div>
-                </div>
-            </div>
-            <div id="upload-error" class="hidden text-xs text-red-500 font-semibold"></div>
-            <button id="upload-submit-btn" onclick="submitUpload()" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-2xl transition-colors disabled:opacity-50 hidden">
-                <i class="fas fa-upload mr-2"></i>Subir
-            </button>
-        </div>
-    </div>
-
-    <!-- Modal: carga masiva -->
-    <div id="bulk-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-[70] hidden p-4 backdrop-blur-sm">
-        <div class="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl p-6 flex flex-col gap-4 animate-modal-in">
-            <div class="flex items-center justify-between">
-                <h3 class="font-bold text-slate-800 text-lg">Carga masiva de imágenes</h3>
-                <button onclick="closeBulkModal()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <p class="text-xs text-gray-400">Los archivos deben tener el formato <span class="font-mono font-bold">SKU-N.jpg</span> (ej: <span class="font-mono">EE000265-1.jpg</span>)</p>
-            <label class="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-2xl p-6 cursor-pointer hover:bg-slate-50 transition-colors gap-2">
-                <i class="fas fa-images text-3xl text-slate-400"></i>
-                <span class="text-sm font-semibold text-gray-500">Selecciona los archivos</span>
-                <input id="bulk-file-input" type="file" accept="image/*" multiple class="hidden" onchange="handleBulkFiles()">
-            </label>
-            <div id="bulk-file-count" class="text-xs text-gray-400 hidden"></div>
-            <!-- Advertencia de conflictos -->
-            <div id="bulk-conflict-wrap" class="hidden bg-amber-50 border border-amber-200 rounded-2xl p-4">
-                <p class="text-xs font-bold text-amber-700 mb-2"><i class="fas fa-exclamation-triangle mr-1"></i>Los siguientes archivos sobreescribirán imágenes existentes:</p>
-                <ul id="bulk-conflict-list" class="text-xs text-amber-600 max-h-32 overflow-y-auto space-y-0.5 font-mono"></ul>
-            </div>
-            <div id="bulk-progress-wrap" class="hidden">
-                <div id="bulk-progress-text" class="text-xs text-gray-400 mb-1">Procesando...</div>
-                <div class="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div id="bulk-progress-bar" class="h-full bg-slate-700 transition-all duration-300" style="width:0%"></div>
-                </div>
-            </div>
-            <div id="bulk-error" class="hidden text-xs text-red-500 font-semibold"></div>
-            <div class="flex gap-3">
-                <button id="bulk-check-btn" onclick="checkBulkConflicts()"
-                    class="flex-1 bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 rounded-2xl transition-colors hidden">
-                    <i class="fas fa-search mr-2"></i>Revisar
-                </button>
-                <button id="bulk-submit-btn" onclick="submitBulkUpload()"
-                    class="flex-1 bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 rounded-2xl transition-colors hidden">
-                    <i class="fas fa-upload mr-2"></i>Subir todo
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Botón carga masiva (flotante, solo auth) -->
-    <button id="bulk-upload-fab" onclick="openBulkModal()"
-        class="hidden fixed bottom-6 right-6 z-50 bg-slate-800 hover:bg-slate-900 text-white font-bold px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2 transition-all active:scale-95">
-        <i class="fas fa-images"></i><span class="text-sm">Carga masiva</span>
-    </button>
-
-    <!-- Modal: carga masiva de ubicaciones -->
-    <div id="location-bulk-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-[70] hidden p-4 backdrop-blur-sm">
-        <div class="bg-white w-full max-w-md rounded-[2rem] shadow-2xl p-6 flex flex-col gap-4 animate-modal-in">
-            <div class="flex items-center justify-between">
-                <h3 class="font-bold text-slate-800 text-lg">Actualizar ubicaciones</h3>
-                <button onclick="closeLocationBulkModal()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <p class="text-xs text-gray-400">Sube un archivo CSV o Excel con columnas <span class="font-mono font-bold">SKU, UBICACION-1, UBICACION-2, UBICACION-3</span>. Se actualizarán solo los SKUs presentes en el archivo.</p>
-            <label class="flex flex-col items-center justify-center border-2 border-dashed border-amber-200 rounded-2xl p-6 cursor-pointer hover:bg-amber-50 transition-colors gap-2">
-                <i class="fas fa-file-upload text-3xl text-amber-400"></i>
-                <span class="text-sm font-semibold text-gray-500">Selecciona CSV o Excel</span>
-                <span class="text-xs text-gray-400">.csv · .xlsx</span>
-                <input id="location-bulk-file" type="file" accept=".csv,.xlsx,.xls" class="hidden" onchange="handleLocationBulkFile()">
-            </label>
-            <div id="location-bulk-filename" class="hidden text-xs font-mono text-gray-500 text-center bg-gray-50 rounded-xl py-2 px-3"></div>
-            <div id="location-bulk-progress" class="hidden">
-                <div class="text-xs text-gray-400 mb-1" id="location-bulk-progress-text">Procesando...</div>
-                <div class="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div id="location-bulk-progress-bar" class="h-full bg-amber-500 transition-all duration-300" style="width:0%"></div>
-                </div>
-            </div>
-            <div id="location-bulk-result" class="hidden text-sm text-center font-semibold rounded-xl py-2 px-3"></div>
-            <button id="location-bulk-submit" onclick="submitLocationBulk()"
-                class="hidden w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-2xl transition-colors">
-                <i class="fas fa-upload mr-2"></i>Actualizar
-            </button>
-        </div>
-    </div>
-
-    <script src="app.js?v=1.8"></script>
+    <script src="app.js?v=2.0"></script>
 </body>
 </html>

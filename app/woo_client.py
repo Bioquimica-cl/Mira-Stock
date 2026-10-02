@@ -1,6 +1,8 @@
 """
 Cliente ligero de WooCommerce para MiraStock-Total.
-Obtiene SKU + imagen + categorías en una sola pasada paginada.
+Obtiene SKU + imagen + categorías + descripción en una sola pasada paginada.
+No trae precios — el precio que muestra la app es siempre SAP neto + IVA (precio
+de tienda), no el de la tienda online.
 """
 import os
 import logging
@@ -21,24 +23,22 @@ class WooImageClient:
     def is_configured(self) -> bool:
         return bool(self.url and self.key and self.secret)
 
-    def get_enrichment(self) -> tuple[dict, dict, dict, dict, dict]:
+    def get_enrichment(self) -> tuple[dict, dict, dict, dict]:
         """
-        Pasada completa: devuelve (image_map, category_map, all_categories, desc_map, pricing_map).
+        Pasada completa: devuelve (image_map, category_map, all_categories, desc_map).
         - image_map:      {SKU_UPPER: imagen_url}  — incluye variaciones
         - category_map:   {SKU_UPPER: "slug1,slug2"}
         - all_categories: {slug: nombre_display}
         - desc_map:       {SKU_UPPER: short_description}
-        - pricing_map:    {SKU_UPPER: {"regular": float, "sale": float}}  — solo si hay descuento activo
         """
         if not self.is_configured():
             logger.warning("[Woo] No configurado — se omite enriquecimiento.")
-            return {}, {}, {}, {}, {}
+            return {}, {}, {}, {}
 
         image_map:      dict[str, str]  = {}
         category_map:   dict[str, str]  = {}
         all_categories: dict[str, str]  = {}
         desc_map:       dict[str, str]  = {}
-        pricing_map:    dict[str, dict] = {}
         variable_products: list[dict]   = []
         page = 1
 
@@ -50,7 +50,7 @@ class WooImageClient:
                     auth=self.auth,
                     params={
                         "page": page, "per_page": 100,
-                        "_fields": "id,sku,type,images,categories,short_description,regular_price,sale_price,price,on_sale",
+                        "_fields": "id,sku,type,images,categories,short_description",
                     },
                     timeout=30,
                 )
@@ -77,16 +77,6 @@ class WooImageClient:
                             category_map[sku] = cat_str
                         if desc:
                             desc_map[sku] = desc
-                        try:
-                            regular  = float(p.get("regular_price") or 0)
-                            sale     = float(p.get("sale_price") or 0)
-                            current  = float(p.get("price") or 0)
-                            on_sale  = p.get("on_sale", False)
-                            effective = sale or (current if on_sale else 0)
-                            if effective > 0 and regular > effective:
-                                pricing_map[sku] = {"regular": regular, "sale": effective}
-                        except (ValueError, TypeError):
-                            pass
 
                     if p.get("type") == "variable":
                         variable_products.append({
@@ -110,7 +100,7 @@ class WooImageClient:
                     r = requests.get(
                         f"{self.base}/products/{vp['id']}/variations",
                         auth=self.auth,
-                        params={"per_page": 100, "page": vpage, "_fields": "sku,image,regular_price,sale_price,price,on_sale"},
+                        params={"per_page": 100, "page": vpage, "_fields": "sku,image"},
                         timeout=30,
                     )
                     r.raise_for_status()
@@ -126,16 +116,6 @@ class WooImageClient:
                             image_map[vsku] = vimg
                         if vp["cats"] and vsku not in category_map:
                             category_map[vsku] = vp["cats"]
-                        try:
-                            regular  = float(v.get("regular_price") or 0)
-                            sale     = float(v.get("sale_price") or 0)
-                            current  = float(v.get("price") or 0)
-                            on_sale  = v.get("on_sale", False)
-                            effective = sale or (current if on_sale else 0)
-                            if effective > 0 and regular > effective:
-                                pricing_map[vsku] = {"regular": regular, "sale": effective}
-                        except (ValueError, TypeError):
-                            pass
                     vpage += 1
                 except Exception as e:
                     logger.error(f"[Woo] Error variaciones producto {vp['id']}: {e}")
@@ -143,11 +123,10 @@ class WooImageClient:
 
         logger.info(
             f"[Woo] Completado: {len(image_map)} imágenes, "
-            f"{len(all_categories)} categorías, {len(desc_map)} descripciones, "
-            f"{len(pricing_map)} con descuento."
+            f"{len(all_categories)} categorías, {len(desc_map)} descripciones."
         )
-        return image_map, category_map, all_categories, desc_map, pricing_map
+        return image_map, category_map, all_categories, desc_map
 
     def get_sku_image_map(self) -> dict[str, str]:
-        image_map, _, _, _, _ = self.get_enrichment()
+        image_map, _, _, _ = self.get_enrichment()
         return image_map
