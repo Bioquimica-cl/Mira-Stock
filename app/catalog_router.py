@@ -10,11 +10,9 @@ from app.sap_sync_worker import sync_status, start_async_sync
 
 router = APIRouter(prefix="/api", tags=["Catalog"])
 
-WAREHOUSES = ["01", "11", "15", "30"]
-
-# App de solo consulta: un único set de columnas. Stock se expone agrupado en 2
-# canales de negocio (Tienda = bodega 15, Web = bodegas 01+11); el precio mostrado
-# es siempre SAP neto (el +IVA se calcula en el frontend) — nunca el de WooCommerce.
+# App de solo consulta: un único set de columnas. El único stock que se muestra
+# en toda la app es el de tienda (bodega 15) — no hay vista "web" ni canales.
+# El precio mostrado es siempre SAP neto (el +IVA se calcula en el frontend).
 _PRODUCT_COLS = """
     p.sku,
     p.name,
@@ -25,18 +23,12 @@ _PRODUCT_COLS = """
     p.image_url,
     p.price,
     COALESCE(s15.on_hand, 0) AS stock_tienda,
-    (COALESCE(s01.on_hand, 0) + COALESCE(s11.on_hand, 0)) AS stock_web,
-    (COALESCE(s01.on_hand, 0) + COALESCE(s11.on_hand, 0) +
-     COALESCE(s15.on_hand, 0) + COALESCE(s30.on_hand, 0)) AS total_stock,
     p.location
 """
 
 _JOINS = """
     FROM products p
-    LEFT JOIN stock s01 ON p.sku = s01.sku AND s01.warehouse_code = '01'
-    LEFT JOIN stock s11 ON p.sku = s11.sku AND s11.warehouse_code = '11'
     LEFT JOIN stock s15 ON p.sku = s15.sku AND s15.warehouse_code = '15'
-    LEFT JOIN stock s30 ON p.sku = s30.sku AND s30.warehouse_code = '30'
 """
 
 
@@ -64,7 +56,7 @@ def _normalize(text: str) -> str:
     ).lower()
 
 
-def _build_conditions(search: str, item_type: str, stock_filter: str, category: str, channel: str = ""):
+def _build_conditions(search: str, item_type: str, stock_filter: str, category: str):
     conditions, args = [], []
 
     if search:
@@ -78,20 +70,10 @@ def _build_conditions(search: str, item_type: str, stock_filter: str, category: 
         conditions.append("p.item_type = ?")
         args.append(item_type)
 
-    stock_expr = "COALESCE(s01.on_hand,0)+COALESCE(s11.on_hand,0)+COALESCE(s15.on_hand,0)"
     if stock_filter == "instock":
-        conditions.append(f"({stock_expr}) > 0")
+        conditions.append("COALESCE(s15.on_hand, 0) > 0")
     elif stock_filter == "outofstock":
-        conditions.append(f"({stock_expr}) = 0")
-
-    # Filtro de canal: tienda (B15), web (B01+B11), ambos
-    if channel == "tienda":
-        conditions.append("COALESCE(s15.on_hand, 0) > 0")
-    elif channel == "web":
-        conditions.append("(COALESCE(s01.on_hand, 0) + COALESCE(s11.on_hand, 0)) > 0")
-    elif channel == "ambos":
-        conditions.append("COALESCE(s15.on_hand, 0) > 0")
-        conditions.append("(COALESCE(s01.on_hand, 0) + COALESCE(s11.on_hand, 0)) > 0")
+        conditions.append("COALESCE(s15.on_hand, 0) = 0")
 
     # Solo ítems vendibles — comportamiento fijo, sin toggle en la UI.
     conditions.append("p.sell_item = 1")
@@ -159,7 +141,6 @@ async def get_products(
     item_type: str = "all",
     stock_filter: str = "all",
     category: str = "",
-    channel: str = "",
     page: int = 1,
     page_size: int = 24,
 ):
@@ -169,7 +150,7 @@ async def get_products(
             "pagination": {"current_page": 1, "total_pages": 0, "total_items": 0, "page_size": page_size},
         }
 
-    where, args = _build_conditions(search, item_type, stock_filter, category, channel)
+    where, args = _build_conditions(search, item_type, stock_filter, category)
 
     conn = get_db()
     total_items = conn.execute(f"SELECT COUNT(*) {_JOINS} {where}", args).fetchone()[0]

@@ -136,16 +136,10 @@
 
                         <!-- Disponibilidad -->
                         <div class="mb-6">
-                            <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Disponibilidad</h4>
-                            <div class="grid grid-cols-2 gap-2">
-                                <div class="wh-card wh-15">
-                                    <span class="wh-label">Tienda</span>
-                                    <span id="product-stock-tienda" class="wh-value">--</span>
-                                </div>
-                                <div class="wh-card wh-01">
-                                    <span class="wh-label">Web</span>
-                                    <span id="product-stock-web" class="wh-value">--</span>
-                                </div>
+                            <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Stock tienda</h4>
+                            <div class="wh-card wh-15">
+                                <span class="wh-label">Tienda</span>
+                                <span id="product-stock-tienda" class="wh-value">--</span>
                             </div>
                         </div>
 
@@ -185,7 +179,7 @@
         </div>
 
         <!-- Vista Catálogo -->
-        <div id="catalog-view" class="view hidden w-xl">
+        <div id="catalog-view" class="view hidden w-full">
             <div class="flex flex-col lg:flex-row gap-3 lg:gap-6 items-start">
 
                 <!-- Botón filtros (solo móvil) -->
@@ -225,16 +219,6 @@
                         </div>
                     </div>
 
-                    <!-- Filtro: Canal -->
-                    <div class="mb-6">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Canal de venta</label>
-                        <div class="flex flex-wrap gap-2">
-                            <button id="canal-btn-tienda" onclick="toggleCanal('tienda')" class="canal-pill canal-pill-tienda">Tienda</button>
-                            <button id="canal-btn-web"    onclick="toggleCanal('web')"    class="canal-pill canal-pill-web">Web</button>
-                            <button id="canal-btn-ambos"  onclick="toggleCanal('ambos')"  class="canal-pill canal-pill-ambos">Tienda+Web</button>
-                        </div>
-                    </div>
-
                     <!-- Filtro: Categoría -->
                     <div class="mb-6">
                         <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Categoría</label>
@@ -251,14 +235,8 @@
 
                     <!-- Limpiar filtros -->
                     <button onclick="clearFilters()"
-                        class="w-full bg-gray-100 hover:bg-orange-50 text-gray-500 hover:text-orange-600 border border-gray-200 font-bold py-3 px-5 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95 text-sm mb-3">
+                        class="w-full bg-gray-100 hover:bg-orange-50 text-gray-500 hover:text-orange-600 border border-gray-200 font-bold py-3 px-5 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95 text-sm">
                         <i class="fas fa-times-circle"></i> Limpiar filtros
-                    </button>
-
-                    <!-- Sync -->
-                    <button onclick="triggerSync()"
-                        class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 px-5 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95 text-sm">
-                        <i class="fas fa-sync-alt"></i> Sincronizar SAP
                     </button>
                 </aside>
 
@@ -279,7 +257,7 @@
                     </div>
 
                     <!-- Grid de productos -->
-                    <div id="catalog-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-10 max-w-5xl"></div>
+                    <div id="catalog-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 mb-10"></div>
 
                     <!-- Tabla de productos -->
                     <div id="catalog-table" class="hidden mb-10 bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
@@ -290,6 +268,7 @@
                                         <th class="px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">SKU</th>
                                         <th class="px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Nombre</th>
                                         <th class="px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Descripción</th>
+                                        <th class="px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Stock tienda</th>
                                         <th class="px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Precio tienda</th>
                                     </tr>
                                 </thead>
@@ -385,9 +364,9 @@
                         <p id="modal-location-text" class="text-sm font-bold text-slate-700 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 min-h-[44px] italic text-gray-400"></p>
                     </div>
 
-                    <!-- Disponibilidad -->
+                    <!-- Stock tienda -->
                     <div>
-                        <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Disponibilidad</h4>
+                        <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Stock tienda</h4>
                         <div id="modal-warehouse-list" class="flex flex-col gap-2"></div>
                     </div>
 
@@ -401,6 +380,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=2.1"></script>
+    <script src="app.js?v=2.2"></script>
 </body>
 </html>

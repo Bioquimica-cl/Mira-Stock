@@ -28,7 +28,7 @@ def _normalize(text: str) -> str:
 
 
 def run_sync():
-    sync_status.update({"is_running": True, "progress": 5, "message": "Conectando con API-Planillas-1..."})
+    sync_status.update({"is_running": True, "progress": 5, "message": "Conectando con Stock-Service..."})
 
     try:
         api_url  = os.getenv("API_PLANILLAS_URL", "").rstrip("/")
@@ -42,7 +42,7 @@ def run_sync():
         if api_key:
             headers["X-API-Key"] = api_key
 
-        sync_status.update({"progress": 10, "message": "Obteniendo catálogo desde Integraciones-BQ (puede tardar varios minutos)..."})
+        sync_status.update({"progress": 10, "message": "Obteniendo catálogo desde Stock-Service (puede tardar varios minutos)..."})
         logger.info(f"[Sync] Llamando a {endpoint}")
 
         # Timeout generoso: SAP puede tardar varios minutos en responder
@@ -52,33 +52,23 @@ def run_sync():
                 detail = response.json().get("detail", response.text[:500])
             except Exception:
                 detail = response.text[:500]
-            raise RuntimeError(f"Integraciones-BQ respondió {response.status_code}: {detail}")
+            raise RuntimeError(f"Stock-Service respondió {response.status_code}: {detail}")
         data  = response.json()
         items = data.get("items", [])
 
-        logger.info(f"[Sync] {len(items)} ítems recibidos desde Integraciones-BQ.")
-        sync_status.update({"progress": 65, "message": f"Procesando {len(items)} ítems..."})
-
-        # ── Enriquecimiento con WooCommerce (imágenes + categorías, opcional) ────
-        image_map:      dict = {}
-        category_map:   dict = {}
-        all_categories: dict = {}
-        desc_map:       dict = {}
-        try:
-            from app.woo_client import WooImageClient
-            woo = WooImageClient()
-            if woo.is_configured():
-                sync_status.update({"progress": 70, "message": "Obteniendo imágenes, categorías y descripciones desde WooCommerce..."})
-                image_map, category_map, all_categories, desc_map = woo.get_enrichment()
-                logger.info(f"[Sync] {len(image_map)} imágenes, {len(all_categories)} categorías, {len(desc_map)} descripciones de WooCommerce.")
-        except Exception as e:
-            logger.warning(f"[Sync] WooCommerce no disponible (no crítico): {e}")
+        logger.info(f"[Sync] {len(items)} ítems recibidos desde Stock-Service.")
+        sync_status.update({"progress": 70, "message": f"Procesando {len(items)} ítems..."})
 
         # ── Preparar filas para SQLite ──────────────────────────────────────────
+        # Categorías y descripción web ya vienen incluidas en la respuesta de
+        # Stock-Service (campos `categories` y `woo_description`) — no hace falta
+        # una segunda llamada a WooCommerce para esto (esa llamada aparte existía
+        # antes y fallaba en silencio, dejando categorías/descripción vacías).
         sync_status.update({"progress": 80, "message": "Guardando en base de datos local..."})
 
         product_rows = []
         stock_rows   = []
+        all_categories: dict[str, str] = {}
 
         for p in items:
             sku = (p.get("sku") or "").strip()
@@ -86,10 +76,15 @@ def run_sync():
                 continue
             name      = (p.get("name") or "").strip()
             name_norm = _normalize(name)
-            image_url = image_map.get(sku, "")  # URL de Woo; se sobreescribe con IDs de Drive al exportar
-            # Descripción: SAP ForeignName primero, WooCommerce short_description como fallback
+            # Descripción: SAP ForeignName primero, descripción de WooCommerce como fallback
             sap_desc = (p.get("description") or "").strip()
-            description = sap_desc or desc_map.get(sku, "")
+            description = sap_desc or (p.get("woo_description") or "").strip()
+
+            cats = p.get("categories") or []
+            for c in cats:
+                if c.get("slug"):
+                    all_categories[c["slug"]] = c.get("name", c["slug"])
+            categories_str = ",".join(c["slug"] for c in cats if c.get("slug"))
 
             product_rows.append((
                 sku,
@@ -97,10 +92,10 @@ def run_sync():
                 name_norm,
                 p.get("item_type", "Producto"),
                 float(p.get("price") or 0),
-                image_url,
+                "",  # image_url: sin fuente propia — se usa solo "images" (Drive)
                 description,
                 1 if p.get("sell_item", True) else 0,
-                category_map.get(sku, ""),
+                categories_str,
                 "",  # images: se llena con el script de Drive, no se toca en el sync
             ))
 
@@ -149,15 +144,14 @@ def run_sync():
                     )
         conn.close()
 
-        woo_msg = f", {len(image_map)} imágenes, {len(all_categories)} categorías" if image_map else ""
         sync_status.update({
             "is_running":     False,
             "progress":       100,
             "total_products": len(product_rows),
             "last_sync":      datetime.now().strftime("%Y-%m-%d %H:%M"),
-            "message":        f"Completado: {len(product_rows)} productos{woo_msg}.",
+            "message":        f"Completado: {len(product_rows)} productos, {len(all_categories)} categorías.",
         })
-        logger.info(f"[Sync] Completado: {len(product_rows)} productos{woo_msg}.")
+        logger.info(f"[Sync] Completado: {len(product_rows)} productos, {len(all_categories)} categorías.")
 
     except Exception as e:
         sync_status.update({

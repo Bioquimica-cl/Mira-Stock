@@ -1,4 +1,4 @@
-console.log("[MiraStock-Total] Sistema cargado (v2.1 — vista de tabla en catálogo).");
+console.log("[MiraStock-Total] Sistema cargado (v2.2 — solo stock tienda, categorías reales).");
 
 let inputBuffer = '';
 let bufferTimeout = null;
@@ -7,7 +7,6 @@ let resetInterval = null;
 let syncInterval = null;
 let lastKnownRunning = false;
 let currentPage = 1;
-let selectedCanal = '';
 let catalogViewMode = localStorage.getItem('catalog-view') || 'grid';
 let lastProducts = [];
 
@@ -170,7 +169,6 @@ function displayProduct(p) {
     }
 
     document.getElementById('product-stock-tienda').textContent = Math.round(p.stock_tienda || 0);
-    document.getElementById('product-stock-web').textContent    = Math.round(p.stock_web || 0);
 }
 
 // --- 4. Catálogo ---
@@ -191,7 +189,7 @@ async function loadCatalog(search = '', page = 1) {
     try {
         const stock    = document.getElementById('catalog-stock-status').value;
         const category = document.getElementById('catalog-category').value;
-        const url = `/api/products?search=${encodeURIComponent(search)}&stock_filter=${stock}&category=${encodeURIComponent(category)}&channel=${selectedCanal}&page=${page}`;
+        const url = `/api/products?search=${encodeURIComponent(search)}&stock_filter=${stock}&category=${encodeURIComponent(category)}&page=${page}`;
         const res  = await fetch(url);
         const data = await res.json();
 
@@ -204,18 +202,6 @@ async function loadCatalog(search = '', page = 1) {
     } finally {
         loading.classList.add('hidden');
     }
-}
-
-function toggleCanal(code) {
-    if (selectedCanal === code) {
-        selectedCanal = '';
-    } else {
-        selectedCanal = code;
-    }
-    ['tienda', 'web', 'ambos'].forEach(c => {
-        document.getElementById(`canal-btn-${c}`)?.classList.toggle('active', selectedCanal === c);
-    });
-    loadCatalog(document.getElementById('catalog-search').value, 1);
 }
 
 function priceWithIva(price) {
@@ -267,6 +253,7 @@ function renderCatalogTable(products) {
             <td class="px-5 py-3 text-xs font-bold font-mono text-gray-600 whitespace-nowrap">${escapeHtml(p.sku)}</td>
             <td class="px-5 py-3 text-sm font-semibold text-gray-800">${escapeHtml(p.name)}</td>
             <td class="px-5 py-3 text-sm text-gray-500 catalog-desc-cell" title="${escapeHtml(p.description || '')}">${escapeHtml(p.description || '')}</td>
+            <td class="px-5 py-3 text-sm font-black text-right whitespace-nowrap ${Math.round(p.stock_tienda||0)>0?'text-orange-500':'text-gray-300'}">${Math.round(p.stock_tienda||0)}</td>
             <td class="px-5 py-3 text-sm font-bold text-slate-800 text-right whitespace-nowrap">${formatPrice(precioTienda)}</td>
         `;
         tr.onclick = () => openProductModal(p);
@@ -299,11 +286,8 @@ function renderCatalog(products) {
 
                 <div class="mt-auto space-y-2">
                     <div class="flex items-center gap-3">
-                        <span class="text-xs font-bold text-gray-500 uppercase">Tienda</span>
+                        <span class="text-xs font-bold text-gray-500 uppercase">Stock tienda</span>
                         <span class="text-sm font-black ${Math.round(p.stock_tienda||0)>0?'text-orange-500':'text-gray-300'}">${Math.round(p.stock_tienda||0)}</span>
-                        <span class="text-gray-300">|</span>
-                        <span class="text-xs font-bold text-gray-500 uppercase">Web</span>
-                        <span class="text-sm font-black ${Math.round(p.stock_web||0)>0?'text-blue-500':'text-gray-300'}">${Math.round(p.stock_web||0)}</span>
                     </div>
 
                     <div class="pt-2 border-t border-gray-100">
@@ -351,11 +335,6 @@ function clearFilters() {
     document.getElementById('catalog-search').value = '';
     document.getElementById('catalog-stock-status').value = 'instock';
     document.getElementById('catalog-category').value = '';
-
-    selectedCanal = '';
-    ['tienda', 'web', 'ambos'].forEach(c =>
-        document.getElementById(`canal-btn-${c}`)?.classList.remove('active')
-    );
 
     loadCatalog('', 1);
 }
@@ -418,20 +397,13 @@ function openProductModal(p) {
         }
     }
 
-    // Disponibilidad
+    // Stock tienda
     const wlDiv  = document.getElementById('modal-warehouse-list');
     const tienda = Math.round(p.stock_tienda || 0);
-    const webS   = Math.round(p.stock_web    || 0);
     wlDiv.innerHTML = `
-        <div class="flex gap-3">
-            <div class="flex-1 bg-orange-50 rounded-xl p-3 text-center border border-orange-100">
-                <span class="text-[9px] font-bold text-orange-400 uppercase block mb-1">Tienda</span>
-                <span class="text-2xl font-black ${tienda > 0 ? 'text-orange-600' : 'text-gray-300'}">${tienda}</span>
-            </div>
-            <div class="flex-1 bg-blue-50 rounded-xl p-3 text-center border border-blue-100">
-                <span class="text-[9px] font-bold text-blue-400 uppercase block mb-1">Web</span>
-                <span class="text-2xl font-black ${webS > 0 ? 'text-blue-600' : 'text-gray-300'}">${webS}</span>
-            </div>
+        <div class="bg-orange-50 rounded-xl p-3 text-center border border-orange-100">
+            <span class="text-[9px] font-bold text-orange-400 uppercase block mb-1">Tienda</span>
+            <span class="text-2xl font-black ${tienda > 0 ? 'text-orange-600' : 'text-gray-300'}">${tienda}</span>
         </div>`;
 
     // Galería modal
@@ -447,15 +419,6 @@ function closeProductModal() {
 }
 
 // --- 7. Sincronización ---
-async function triggerSync() {
-    try {
-        await fetch('/api/trigger-sync', { method: 'POST' });
-        startSyncPolling();
-    } catch (err) {
-        console.error("Error al iniciar sync:", err);
-    }
-}
-
 async function startSyncPolling() {
     if (syncInterval) clearInterval(syncInterval);
     syncInterval = setInterval(async () => {
